@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎲 ЛОТО</title>
+<style>
+:root{
+  --bg1:#0f1226; --bg2:#1b1f4b; --panel:rgba(255,255,255,.06);
+  --panel-brd:rgba(255,255,255,.12); --text:#eef0ff; --muted:#a7adcf;
+  --accent:#ffce3a; --accent2:#7c5cff; --good:#34d399; --bad:#fb7185;
+  --radius:16px; --gap:16px; --shadow:0 10px 40px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--text); min-height:100vh;
+  background:radial-gradient(1200px 800px at 70% -10%,var(--bg2),transparent 60%),
+             linear-gradient(160deg,var(--bg1),#0a0c1c);
+}
+.wrap{max-width:1200px; margin:0 auto; padding:24px 16px 60px}
+header h1{font-size:34px; margin:8px 0 16px; letter-spacing:.5px}
+.tabs{display:flex; gap:8px; margin-bottom:20px}
+.tab-btn{
+  flex:0 0 auto; padding:10px 20px; border:1px solid var(--panel-brd);
+  background:var(--panel); color:var(--muted); border-radius:999px;
+  font-size:15px; cursor:pointer; transition:.2s;
+}
+.tab-btn:hover{color:var(--text); transform:translateY(-1px)}
+.tab-btn.active{background:linear-gradient(135deg,var(--accent2),#a98bff); color:#fff; border-color:transparent}
+.tab-pane{display:none; animation:fade .25s ease}
+.tab-pane.active{display:block}
+@keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+.card{background:var(--panel); border:1px solid var(--panel-brd); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow); margin-bottom:var(--gap)}
+.btn{
+  padding:11px 18px; border:none; border-radius:12px; font-size:15px; cursor:pointer;
+  background:linear-gradient(135deg,var(--accent2),#a98bff); color:#fff; transition:.15s;
+}
+.btn:hover{transform:translateY(-1px); filter:brightness(1.07)}
+.btn:active{transform:translateY(0)}
+.btn.ghost{background:transparent; border:1px solid var(--panel-brd); color:var(--text)}
+.btn.gold{background:linear-gradient(135deg,#ffd75e,var(--accent)); color:#3a2b00}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+textarea{width:100%; min-height:120px; resize:vertical; border-radius:12px; padding:12px;
+  background:rgba(0,0,0,.25); border:1px solid var(--panel-brd); color:var(--text); font-size:14px}
+.muted{color:var(--muted); font-size:14px}
+input[type=number]{width:90px; padding:9px 12px; border-radius:10px; background:rgba(0,0,0,.25);
+  border:1px solid var(--panel-brd); color:var(--text); font-size:16px}
+table{width:100%; border-collapse:collapse; margin-top:12px; font-size:14px}
+th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--panel-brd)}
+th{color:var(--muted); font-weight:600}
+.nums span{display:inline-block; min-width:30px; text-align:center; padding:3px 7px; margin:2px;
+  border-radius:8px; background:rgba(124,92,255,.25); font-variant-numeric:tabular-nums}
+.barrel{
+  width:160px; height:160px; margin:10px auto; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:68px; font-weight:800; color:#3a2b00;
+  background:radial-gradient(circle at 35% 30%,#fff2c0,var(--accent));
+  box-shadow:inset 0 -8px 20px rgba(0,0,0,.25),var(--shadow);
+  font-variant-numeric:tabular-nums;
+}
+.barrel.empty{background:rgba(255,255,255,.06); color:var(--muted); box-shadow:none; font-size:18px; font-weight:500}
+@keyframes pop{0%{transform:scale(.2) rotate(-25deg); opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1) rotate(0); opacity:1}}
+.barrel.pop{animation:pop .45s cubic-bezier(.2,1.3,.4,1)}
+.game-layout{display:flex; gap:16px; align-items:flex-start; justify-content:center}
+.game-left{flex:0 0 340px}
+.game-right{flex:0 0 auto; min-width:0}
+.grid99{display:grid; grid-template-columns:repeat(11,56px); gap:5px; margin-top:12px}
+.cell{width:56px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:8px;
+  background:rgba(255,255,255,.05); border:1px solid var(--panel-brd); font-size:24px; font-weight:800;
+  color:var(--muted); font-variant-numeric:tabular-nums; transition:.2s}
+.cell.hit{background:linear-gradient(135deg,var(--accent2),#a98bff); color:#fff; border-color:transparent; transform:scale(1.06)}
+.history{margin-top:10px; color:var(--muted); font-size:14px; min-height:20px}
+.history b{color:var(--text)}
+.plist{list-style:none; padding:0; margin:8px 0 0}
+.plist li{display:flex; justify-content:space-between; padding:7px 10px; border-bottom:1px solid var(--panel-brd)}
+.plist .bar{height:6px; border-radius:4px; background:var(--good); display:inline-block; vertical-align:middle; margin-left:8px}
+.winners{margin-top:14px; padding:18px; border-radius:var(--radius);
+  background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(124,92,255,.18)); border:1px solid var(--good)}
+.winners h2{margin:0 0 8px} .winners ul{margin:0; padding-left:20px; font-size:18px}
+canvas#confetti{position:fixed; inset:0; pointer-events:none; z-index:50}
+@media (max-width:900px){
+  .game-layout{flex-direction:column; align-items:stretch}
+  .game-left{flex:none}
+  .game-right{flex:none}
+  .grid99{grid-template-columns:repeat(11,1fr); justify-items:stretch}
+  .cell{width:auto; height:auto; aspect-ratio:1; font-size:18px}
+}
+@media (max-width:520px){
+  header h1{font-size:26px}
+  .barrel{width:120px; height:120px; font-size:52px}
+  .grid99{gap:4px}
+  .cell{font-size:15px}
+}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+  <header><h1>🎲 ЛОТО</h1></header>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="setup">Участники</button>
+    <button class="tab-btn" data-tab="game">Игра</button>
+  </nav>
+
+  <section id="tab-setup" class="tab-pane active">
+    <div class="card">
+      <h2 style="margin-top:0">Список участников</h2>
+      <p class="muted">Вставьте из Excel/1С или загрузите CSV. Колонки:
+        <b>Имя, Фамилия, Компания, Должность</b> (числа сгенерируем) или
+        <b>Имя, Фамилия, Компания, Должность, Ч1, Ч2, Ч3, Ч4, Ч5</b> (числа заданы).
+        Поля с запятой внутри берите в кавычки.</p>
+      <textarea id="inputData" placeholder="Иван,Иванов,ООО Ромашка,Менеджер&#10;Анна,Петрова,ИП Петрова,Директор"></textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="btn ghost" id="btnSample">Пример данных</button>
+        <button class="btn ghost" id="btnLoadCsv">Загрузить CSV</button>
+        <input type="file" id="fileCsv" accept=".csv,.txt" style="display:none">
+        <button class="btn" id="btnParse">Разобрать список</button>
+        <button class="btn gold" id="btnGenerate">Сгенерировать числа</button>
+      </div>
+      <p class="muted" id="setupStatus" style="margin-bottom:0"></p>
+    </div>
+
+    <div class="card" id="participantsCard" style="display:none">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Участники: <span id="countBadge">0</span></h2>
+        <div class="row">
+          <button class="btn ghost" id="btnCopy">Скопировать для печати</button>
+          <button class="btn ghost" id="btnDownload">Скачать CSV</button>
+        </div>
+      </div>
+      <table id="participantsTable">
+        <thead><tr><th>#</th><th>Имя</th><th>Фамилия</th><th>Компания</th><th>Должность</th><th>Числа</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-game" class="tab-pane">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <label class="muted">Сколько победителей:</label>
+          <input type="number" id="winnersNeeded" min="1" value="1">
+        </div>
+        <button class="btn gold" id="btnStart">Новая игра</button>
+      </div>
+      <p class="muted" id="gameStatus" style="margin-bottom:0"></p>
+    </div>
+
+    <div id="gameBoard" style="display:none">
+      <div class="game-layout">
+        <div class="game-left">
+          <div class="card">
+            <div id="barrel" class="barrel empty">—</div>
+            <div class="row" style="justify-content:center">
+              <button class="btn" id="btnDraw">Вытащить бочонок</button>
+            </div>
+            <div id="progressCard" style="display:none; margin-top:14px">
+              <h3 style="margin:6px 0 4px">Прогресс</h3>
+              <ul class="plist" id="progressList"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="game-right">
+          <div class="card">
+            <div class="history" id="history"></div>
+            <div class="grid99" id="grid99"></div>
+          </div>
+        </div>
+      </div>
+      <div id="winnersWrap"></div>
+    </div>
+  </section>
+</div>
+<script>
+// === LOTO-CORE-START ===
+var LotoCore = {};
+(function (api) {
+  "use strict";
+
+  api.TENS = [
+    [1, 10], [11, 20], [21, 30], [31, 40], [41, 50],
+    [51, 60], [61, 70], [71, 80], [81, 90], [91, 99]
+  ];
+
+  function randInt(min, max, rng) {
+    return min + Math.floor(rng() * (max - min + 1));
+  }
+
+  api.pickBadgeNumbers = function (rng) {
+    rng = rng || Math.random;
+    var idx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    for (var i = 0; i < 5; i++) {           // частичная перетасовка: первые 5 — выбранные десятки
+      var j = i + Math.floor(rng() * (idx.length - i));
+      var t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+    }
+    var nums = [];
+    for (var k = 0; k < 5; k++) {
+      var range = api.TENS[idx[k]];
+      nums.push(randInt(range[0], range[1], rng));
+    }
+    nums.sort(function (a, b) { return a - b; });
+    return nums;
+  };
+
+  api.comboKey = function (nums) {
+    return nums.slice().sort(function (a, b) { return a - b; }).join(",");
+  };
+
+  function tenIndexOf(n) {
+    for (var i = 0; i < api.TENS.length; i++) {
+      if (n >= api.TENS[i][0] && n <= api.TENS[i][1]) return i;
+    }
+    return -1;
+  }
+
+  api.isValidCombo = function (nums) {
+    if (!Array.isArray(nums) || nums.length !== 5) return false;
+    var seen = {}, tens = {};
+    for (var i = 0; i < 5; i++) {
+      var n = nums[i];
+      if (!Number.isInteger(n) || n < 1 || n > 99) return false;
+      if (seen[n]) return false;
+      seen[n] = true;
+      var ti = tenIndexOf(n);
+      if (tens[ti]) return false;   // два числа из одного десятка
+      tens[ti] = true;
+    }
+    return true;
+  };
+
+  api.assignNumbers = function (participants, rng) {
+    rng = rng || Math.random;
+    var used = {};
+    participants.forEach(function (p) {
+      if (api.isValidCombo(p.numbers)) used[api.comboKey(p.numbers)] = true;
+    });
+    return participants.map(function (p) {
+      var base = { name: p.name, surname: p.surname, company: p.company, position: p.position };
+      if (api.isValidCombo(p.numbers)) {
+        base.numbers = p.numbers.slice().sort(function (a, b) { return a - b; });
+        return base;
+      }
+      var nums, key, guard = 0;
+      do {
+        nums = api.pickBadgeNumbers(rng);
+        key = api.comboKey(nums);
+        guard++;
+      } while (used[key] && guard < 10000);
+      used[key] = true;
+      base.numbers = nums;
+      return base;
+    });
+  };
+
+  api.delimiterOf = function (text) {
+    var firstLine = (text.split(/\r?\n/)[0]) || "";
+    var counts = {
+      "\t": (firstLine.match(/\t/g) || []).length,
+      ";": (firstLine.match(/;/g) || []).length,
+      ",": (firstLine.match(/,/g) || []).length
+    };
+    var best = ",", bestN = 0;
+    ["\t", ";", ","].forEach(function (d) {
+      if (counts[d] > bestN) { bestN = counts[d]; best = d; }
+    });
+    return best;
+  };
+
+  // разбор одной строки CSV с учётом кавычек ("...") и удвоенных кавычек внутри
+  function parseLine(line, delim) {
+    var out = [], cur = "", inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; } else { inQ = false; }
+        } else { cur += ch; }
+      } else if (ch === '"') {
+        inQ = true;
+      } else if (ch === delim) {
+        out.push(cur); cur = "";
+      } else { cur += ch; }
+    }
+    out.push(cur);
+    return out.map(function (c) { return c.trim(); });
+  }
+
+  // колонки: Имя, Фамилия[, Компания, Должность[, Ч1, Ч2, Ч3, Ч4, Ч5]]
+  // 2 кол. — только имя/фамилия; 4 кол. — + компания/должность; 9 кол. — + 5 чисел
+  api.parseList = function (text) {
+    var delim = api.delimiterOf(text);
+    var lines = text.split(/\r?\n/)
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length > 0; });
+    var participants = [], errors = [];
+    lines.forEach(function (line, i) {
+      var cells = parseLine(line, delim);
+      if (i === 0 && /^(имя|name)$/i.test(cells[0] || "")) return; // заголовок
+      if (cells.length < 2) { errors.push("Строка " + (i + 1) + ": мало колонок"); return; }
+      var rec = {
+        name: cells[0], surname: cells[1],
+        company: cells[2] || "", position: cells[3] || "", numbers: null
+      };
+      if (cells.length >= 9) {
+        var nums = [];
+        for (var k = 4; k < 9; k++) {
+          var n = parseInt(cells[k], 10);
+          if (!isNaN(n)) nums.push(n);
+        }
+        if (nums.length === 5) rec.numbers = nums;
+      }
+      participants.push(rec);
+    });
+    return { participants: participants, errors: errors };
+  };
+
+  api.createBag = function () {
+    var bag = [];
+    for (var i = 1; i <= 99; i++) bag.push(i);
+    return bag;
+  };
+
+  api.createGame = function (participants, winnersNeeded) {
+    var needed = Math.max(1, winnersNeeded || 1);
+    var remaining = api.createBag();
+    var drawnOrder = [];
+    var drawnSet = {};
+    var finished = false;
+    var winners = [];
+
+    function isComplete(p) {
+      for (var i = 0; i < p.numbers.length; i++) {
+        if (!drawnSet[p.numbers[i]]) return false;
+      }
+      return true;
+    }
+
+    function draw(rng) {
+      rng = rng || Math.random;
+      if (finished || remaining.length === 0) return null;
+      var pos = Math.floor(rng() * remaining.length);
+      var number = remaining.splice(pos, 1)[0];
+      drawnOrder.push(number);
+      drawnSet[number] = true;
+      winners = participants.filter(isComplete); // монотонно растёт
+      if (winners.length >= needed || remaining.length === 0) finished = true;
+      return { number: number, winners: winners.slice(), finished: finished };
+    }
+
+    function progress() {
+      return participants.map(function (p) {
+        var c = 0;
+        for (var i = 0; i < p.numbers.length; i++) if (drawnSet[p.numbers[i]]) c++;
+        return { name: p.name, surname: p.surname, closed: c, total: p.numbers.length };
+      });
+    }
+
+    return {
+      draw: draw,
+      progress: progress,
+      isDrawn: function (n) { return !!drawnSet[n]; },
+      winnersNeeded: needed,
+      get drawnOrder() { return drawnOrder.slice(); },
+      get winners() { return winners.slice(); },
+      get finished() { return finished; },
+      get remainingCount() { return remaining.length; }
+    };
+  };
+})(LotoCore);
+// === LOTO-CORE-END ===
+
+// === UI-START ===
+(function () {
+  "use strict";
+  // переключение вкладок
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + id).classList.add('active');
+    });
+  });
+
+  // общее состояние приложения
+  window.AppState = { participants: [], game: null };
+
+  window.initSetupTab = function () {
+    var $ = function (id) { return document.getElementById(id); };
+
+    function setStatus(msg, bad) {
+      var el = $('setupStatus');
+      el.textContent = msg || '';
+      el.style.color = bad ? 'var(--bad)' : 'var(--muted)';
+    }
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+      });
+    }
+
+    function renderTable() {
+      var tbody = $('participantsTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      AppState.participants.forEach(function (p, i) {
+        var tr = document.createElement('tr');
+        var nums = (p.numbers || []).map(function (n) { return '<span>' + n + '</span>'; }).join('');
+        tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + esc(p.name) + '</td><td>' +
+                       esc(p.surname) + '</td><td>' + esc(p.company) + '</td><td>' +
+                       esc(p.position) + '</td><td class="nums">' + (nums || '—') + '</td>';
+        tbody.appendChild(tr);
+      });
+      $('countBadge').textContent = AppState.participants.length;
+      $('participantsCard').style.display = AppState.participants.length ? 'block' : 'none';
+    }
+
+    function doParse() {
+      var text = $('inputData').value;
+      if (!text.trim()) { setStatus('Список пуст', true); return false; }
+      var res = LotoCore.parseList(text);
+      AppState.participants = res.participants;
+      renderTable();
+      var withNums = res.participants.filter(function (p) { return p.numbers; }).length;
+      setStatus('Разобрано: ' + res.participants.length + ' (с числами: ' + withNums + ')' +
+                (res.errors.length ? '. Пропущено строк: ' + res.errors.length : ''));
+      return true;
+    }
+
+    $('btnSample').addEventListener('click', function () {
+      $('inputData').value = 'Имя,Фамилия,Компания,Должность\n' +
+        'Иван,Иванов,ООО Ромашка,Менеджер\n' +
+        'Анна,Петрова,ИП Петрова,Директор\n' +
+        'Пётр,Сидоров,ООО Заря,Инженер\n' +
+        'Мария,Кузнецова,"Альфа, Бета",Бухгалтер\n' +
+        'Олег,Смирнов,ООО Вектор,Дизайнер';
+      doParse();
+    });
+
+    $('btnLoadCsv').addEventListener('click', function () { $('fileCsv').click(); });
+
+    $('fileCsv').addEventListener('change', function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var buf = reader.result;
+        var text = new TextDecoder('utf-8').decode(buf);
+        if (/�/.test(text)) text = new TextDecoder('windows-1251').decode(buf);
+        $('inputData').value = text;
+        doParse();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    $('btnParse').addEventListener('click', doParse);
+
+    $('btnGenerate').addEventListener('click', function () {
+      if (!AppState.participants.length && !doParse()) return;
+      AppState.participants = LotoCore.assignNumbers(AppState.participants);
+      renderTable();
+      setStatus('Числа сгенерированы для всех участников.');
+    });
+
+    function csvField(s) {
+      s = String(s == null ? '' : s);
+      return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function toCsv() {
+      var rows = ['Имя,Фамилия,Компания,Должность,Число1,Число2,Число3,Число4,Число5'];
+      AppState.participants.forEach(function (p) {
+        var cols = [p.name, p.surname, p.company, p.position].concat(p.numbers || []);
+        rows.push(cols.map(csvField).join(','));
+      });
+      return rows.join('\r\n');
+    }
+
+    $('btnCopy').addEventListener('click', function () {
+      navigator.clipboard.writeText(toCsv()).then(
+        function () { setStatus('Скопировано в буфер обмена.'); },
+        function () { setStatus('Не удалось скопировать', true); }
+      );
+    });
+
+    $('btnDownload').addEventListener('click', function () {
+      var blob = new Blob(['﻿' + toCsv()], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'loto-participants.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  };
+
+  window.initGameTab = function () {
+    var $ = function (id) { return document.getElementById(id); };
+
+    function buildGrid() {
+      var g = $('grid99'); g.innerHTML = '';
+      for (var n = 1; n <= 99; n++) {
+        var c = document.createElement('div');
+        c.className = 'cell'; c.id = 'cell-' + n; c.textContent = n;
+        g.appendChild(c);
+      }
+    }
+
+    function renderProgress() {
+      if (!AppState.game) return;
+      var pr = AppState.game.progress().slice().sort(function (a, b) { return b.closed - a.closed; });
+      var ul = $('progressList'); ul.innerHTML = '';
+      pr.forEach(function (p) {
+        var li = document.createElement('li');
+        li.innerHTML = '<span>' + p.name + ' ' + p.surname + '</span>' +
+          '<span>' + p.closed + '/' + p.total +
+          '<span class="bar" style="width:' + (p.closed * 14) + 'px"></span></span>';
+        ul.appendChild(li);
+      });
+      $('progressCard').style.display = 'block';
+    }
+
+    function showWinners() {
+      var w = AppState.game.winners;
+      if (!w.length) return;
+      var html = '<div class="winners"><h2>🏆 Победители</h2><ul>' +
+        w.map(function (p) { return '<li>' + p.name + ' ' + p.surname + '</li>'; }).join('') +
+        '</ul></div>';
+      $('winnersWrap').innerHTML = html;
+      $('btnDraw').disabled = true;
+      $('gameStatus').textContent = 'Игра завершена. Победителей: ' + w.length + '.';
+      launchConfetti();
+    }
+
+    $('btnStart').addEventListener('click', function () {
+      if (!AppState.participants.length) {
+        $('gameStatus').textContent = 'Сначала задайте участников на вкладке «Участники».';
+        $('gameStatus').style.color = 'var(--bad)'; return;
+      }
+      $('gameStatus').style.color = 'var(--muted)';
+      var ready = AppState.participants.map(function (p) {
+        return LotoCore.isValidCombo(p.numbers) ? p : null;
+      });
+      if (ready.indexOf(null) !== -1) AppState.participants = LotoCore.assignNumbers(AppState.participants);
+      var need = parseInt($('winnersNeeded').value, 10) || 1;
+      AppState.game = LotoCore.createGame(AppState.participants, need);
+      buildGrid();
+      $('history').innerHTML = ''; $('winnersWrap').innerHTML = '';
+      $('barrel').className = 'barrel empty'; $('barrel').textContent = '—';
+      $('btnDraw').disabled = false;
+      $('gameBoard').style.display = 'block';
+      $('gameStatus').textContent = 'Игра началась. Нужно победителей: ' + AppState.game.winnersNeeded + '.';
+      renderProgress();
+    });
+
+    $('btnDraw').addEventListener('click', function () {
+      if (!AppState.game) return;
+      var res = AppState.game.draw();
+      if (!res) return;
+      var b = $('barrel');
+      b.className = 'barrel'; b.textContent = res.number;
+      b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); // перезапуск анимации
+      var cell = $('cell-' + res.number); if (cell) cell.classList.add('hit');
+      $('history').innerHTML = 'Вытащено ' + AppState.game.drawnOrder.length + ' из 99. Последние: <b>' +
+        AppState.game.drawnOrder.slice(-10).reverse().join(', ') + '</b>';
+      renderProgress();
+      if (res.finished) showWinners();
+    });
+  };
+
+  // простое конфетти на canvas
+  function launchConfetti() {
+    var cv = document.getElementById('confetti');
+    if (!cv) return;
+    cv.width = innerWidth; cv.height = innerHeight;
+    var ctx = cv.getContext('2d');
+    var colors = ['#ffce3a', '#7c5cff', '#34d399', '#fb7185', '#a98bff'];
+    var parts = [];
+    for (var i = 0; i < 160; i++) {
+      parts.push({ x: Math.random() * cv.width, y: -20 - Math.random() * cv.height,
+        r: 4 + Math.random() * 6, c: colors[i % colors.length],
+        vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2, a: Math.random() * Math.PI });
+    }
+    var t0 = Date.now();
+    (function frame() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      parts.forEach(function (p) {
+        p.y += p.vy; p.x += p.vx; p.a += 0.1;
+        ctx.fillStyle = p.c;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a);
+        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r); ctx.restore();
+      });
+      if (Date.now() - t0 < 2500) requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, cv.width, cv.height);
+    })();
+  }
+  window.launchConfetti = launchConfetti;
+
+  // UI участников и игры регистрируются в Task 7 / Task 8
+  if (window.initSetupTab) window.initSetupTab();
+  if (window.initGameTab) window.initGameTab();
+})();
+// === UI-END ===
+</script>
+</body>
+</html>
